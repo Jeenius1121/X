@@ -1,4 +1,4 @@
-# Arc — gestionnaire de tweets pour Android
+# X Manager — gestionnaire de tweets pour Android
 
 App Android hybride pour gérer son compte X **sans abonnement payant et sans risque de suspension** :
 tout passe soit par le site officiel x.com, soit par l'API officielle de X (offre gratuite).
