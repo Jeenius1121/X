@@ -12,8 +12,8 @@ android {
         applicationId = "com.arc.xmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 3
+        versionName = System.getenv("VERSION_NAME") ?: "1.2"
     }
 
     // Signature : clé fournie par variables d'environnement (secrets GitHub en CI),

@@ -5,6 +5,16 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,6 +66,8 @@ fun ArcApp(vm: AppViewModel, webView: WebView) {
             vm.message.value = null
         }
     }
+
+    UpdateDialog(vm)
 
     val openInX: (String) -> Unit = { id ->
         webView.loadUrl("https://x.com/i/status/$id")
@@ -109,6 +121,45 @@ private fun WebTab(webView: WebView) {
         factory = {
             (webView.parent as? ViewGroup)?.removeView(webView)
             webView
+        },
+    )
+}
+
+@Composable
+private fun UpdateDialog(vm: AppViewModel) {
+    val state by vm.update.collectAsState()
+    val dismissed by vm.updateDialogDismissed.collectAsState()
+    val ctx = LocalContext.current
+    val info = when (val st = state) {
+        is UpdateState.Available -> st.info
+        is UpdateState.Downloading -> st.info
+        else -> return
+    }
+    if (dismissed) return
+    val downloading = state as? UpdateState.Downloading
+    AlertDialog(
+        onDismissRequest = { if (downloading == null) vm.updateDialogDismissed.value = true },
+        title = { Text("Mise à jour disponible") },
+        text = {
+            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                Text("${info.versionName} (actuelle : ${vm.currentVersion})", style = MaterialTheme.typography.titleSmall)
+                if (info.notes.isNotBlank()) Text(info.notes, Modifier.padding(top = 8.dp))
+                if (downloading != null) {
+                    LinearProgressIndicator(
+                        progress = { downloading.percent / 100f },
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    )
+                    Text("Téléchargement… ${downloading.percent} %", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = downloading == null, onClick = { vm.installUpdate(ctx, info) }) {
+                Text("Mettre à jour")
+            }
+        },
+        dismissButton = {
+            if (downloading == null) TextButton(onClick = { vm.updateDialogDismissed.value = true }) { Text("Plus tard") }
         },
     )
 }

@@ -56,6 +56,7 @@ fun SettingsTab(vm: AppViewModel) {
     val queue by vm.queue.collectAsState()
     val progress by vm.importProgress.collectAsState()
     val busy by vm.busy.collectAsState()
+    val update by vm.update.collectAsState()
     var clientId by rememberSaveable { mutableStateOf("") }
     var confirmClear by remember { mutableStateOf(false) }
     LaunchedEffect(account.clientId) { if (clientId.isEmpty()) clientId = account.clientId }
@@ -128,6 +129,32 @@ fun SettingsTab(vm: AppViewModel) {
                 }
                 if (queue.counts.stored > 0) {
                     TextButton(onClick = { confirmClear = true }) { Text("Vider") }
+                }
+            }
+        }
+
+        Section("Mises à jour") {
+            Text("Version installée : ${vm.currentVersion}")
+            Text(
+                when (val u = update) {
+                    UpdateState.Idle -> "Vérification automatique à chaque ouverture de l'app."
+                    UpdateState.Checking -> "Vérification…"
+                    UpdateState.UpToDate -> "L'app est à jour ✔"
+                    is UpdateState.Available -> "Nouvelle version disponible : ${u.info.versionName}"
+                    is UpdateState.Downloading -> "Téléchargement… ${u.percent} %"
+                    is UpdateState.Error -> u.message
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val available = update as? UpdateState.Available
+                if (available != null) {
+                    Button(onClick = { vm.installUpdate(ctx, available.info) }) { Text("Mettre à jour") }
+                } else {
+                    OutlinedButton(
+                        enabled = update !is UpdateState.Checking && update !is UpdateState.Downloading,
+                        onClick = { vm.checkUpdates(manual = true) },
+                    ) { Text("Vérifier maintenant") }
                 }
             }
         }

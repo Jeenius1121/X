@@ -2,7 +2,11 @@ name: Build APK
 
 on:
   push:
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -14,21 +18,46 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - name: Tests
-        run: ./gradlew testReleaseUnitTest
-      - name: Signing key (optional secrets)
+
+      - name: Version
+        run: |
+          echo "VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=2.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ARC_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ARC_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             mkdir -p keystore
             echo "$KEYSTORE_BASE64" | base64 -d > keystore/sideload.keystore
+            echo "HAS_KEY=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secrets ARC_KEYSTORE_BASE64 / ARC_KEYSTORE_PASSWORD absents : pas de release publiée."
           fi
+
+      - name: Tests
+        run: ./gradlew testReleaseUnitTest
+
       - name: Build APK
         env:
           ARC_KEYSTORE_PASSWORD: ${{ secrets.ARC_KEYSTORE_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: |
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk X-Manager.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: x-manager-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: X-Manager.apk
+
+      # Publie une release que l'app détecte comme mise à jour.
+      - name: Publish release
+        if: env.HAS_KEY == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION_CODE" X-Manager.apk \
+            --title "X Manager $VERSION_NAME" \
+            --notes "$(git log -1 --pretty=%s)"

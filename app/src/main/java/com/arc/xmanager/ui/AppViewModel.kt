@@ -18,6 +18,9 @@ import com.arc.xmanager.data.PostStatus
 import com.arc.xmanager.data.QueueCounts
 import com.arc.xmanager.data.Scheduled
 import com.arc.xmanager.data.Tweet
+import com.arc.xmanager.update.UpdateBus
+import com.arc.xmanager.update.UpdateInfo
+import com.arc.xmanager.update.Updater
 import com.arc.xmanager.work.DeleteWorker
 import com.arc.xmanager.work.PostWorker
 import com.arc.xmanager.work.toTweet
@@ -35,6 +38,15 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+sealed interface UpdateState {
+    data object Idle : UpdateState
+    data object Checking : UpdateState
+    data object UpToDate : UpdateState
+    data class Available(val info: UpdateInfo) : UpdateState
+    data class Downloading(val info: UpdateInfo, val percent: Int) : UpdateState
+    data class Error(val message: String) : UpdateState
+}
 
 data class SearchResult(val items: List<Tweet> = emptyList(), val error: String? = null, val loading: Boolean = true)
 
@@ -58,6 +70,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val importProgress = MutableStateFlow<Int?>(null)
     val busy = MutableStateFlow(false)
     val message = MutableStateFlow<String?>(null)
+    val update = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateDialogDismissed = MutableStateFlow(false)
+    val currentVersion: String = Updater.currentVersion(app).second
 
     val results: StateFlow<SearchResult> = combine(tweets, filter) { t, f -> t to f }
         .debounce(200)
@@ -74,6 +89,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         refreshAccount()
+        checkUpdates(manual = false)
+        viewModelScope.launch {
+            UpdateBus.message.collect { msg ->
+                if (msg != null) {
+                    say(msg)
+                    UpdateBus.message.value = null
+                    if (update.value is UpdateState.Downloading) update.value = UpdateState.Idle
+                }
+            }
+        }
         viewModelScope.launch {
             reloadAll()
             if (queue.value.counts.queued > 0) DeleteWorker.ensure(ctx)
@@ -240,5 +265,41 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         PostWorker.cancel(ctx, id)
         withContext(Dispatchers.IO) { db.deleteScheduled(id) }
         reloadScheduled()
+    }
+
+    // ---------- Mises à jour ----------
+
+    fun checkUpdates(manual: Boolean) = viewModelScope.launch {
+        if (update.value is UpdateState.Downloading || update.value is UpdateState.Checking) return@launch
+        update.value = UpdateState.Checking
+        update.value = try {
+            val info = withContext(Dispatchers.IO) { Updater.check(ctx) }
+            if (info != null) {
+                if (manual) updateDialogDismissed.value = false
+                UpdateState.Available(info)
+            } else {
+                UpdateState.UpToDate
+            }
+        } catch (e: Exception) {
+            if (manual) UpdateState.Error("Vérification impossible : ${e.message}") else UpdateState.Idle
+        }
+    }
+
+    fun installUpdate(activity: Context, info: UpdateInfo) = viewModelScope.launch {
+        if (!Updater.canInstall(activity)) {
+            say("Autorise X Manager à installer des applis, puis appuie à nouveau sur « Mettre à jour ».")
+            Updater.openInstallPermissionSettings(activity)
+            return@launch
+        }
+        update.value = UpdateState.Downloading(info, 0)
+        try {
+            val file = withContext(Dispatchers.IO) {
+                Updater.download(ctx, info) { pct -> update.value = UpdateState.Downloading(info, pct) }
+            }
+            withContext(Dispatchers.IO) { Updater.install(ctx, file) }
+        } catch (e: Exception) {
+            update.value = UpdateState.Available(info)
+            say("Échec du téléchargement : ${e.message}")
+        }
     }
 }
