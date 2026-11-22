@@ -30,6 +30,11 @@ Télécharger une archive de vos données). Les tweets publiés depuis l'app son
 2. Dans l'app (Réglages) : coller le **Client ID**, puis « Se connecter à X ».
 3. Importer l'archive `.zip`.
 
+## Mises à jour
+L'app vérifie à chaque ouverture la dernière *Release* GitHub du dépôt et propose de l'installer
+par-dessus la version actuelle. Chaque push sur `main` publie automatiquement une nouvelle release
+(si les secrets de signature sont configurés).
+
 ## Compilation
 - Automatique : chaque push lance la GitHub Action *Build APK* ; l'APK est dans les *Artifacts* du run.
 - Locale : `./gradlew assembleRelease` (SDK Android 35 requis) → `app/build/outputs/apk/release/app-release.apk`.
