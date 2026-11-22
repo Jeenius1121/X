@@ -66,6 +66,12 @@ class MainActivity : ComponentActivity() {
         settings.domStorageEnabled = true
         settings.mediaPlaybackRequiresUserGesture = true
         settings.setSupportMultipleWindows(false)
+        settings.useWideViewPort = true
+        settings.loadWithOverviewMode = true
+        // X fonctionne mal quand il détecte une WebView : on se présente comme Chrome mobile.
+        settings.userAgentString = settings.userAgentString
+            .replace("; wv", "")
+            .replace(Regex("Version/\\d+(\\.\\d+)* "), "")
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
@@ -98,6 +104,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        loadUrl("https://x.com/home")
+        loadUrl(HOME)
+    }
+
+    companion object {
+        const val HOME = "https://x.com/home"
     }
 }

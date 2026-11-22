@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.arc.xmanager.MainActivity
 
 private data class Tab(val label: String, val icon: ImageVector)
 
@@ -66,7 +69,11 @@ fun ArcApp(vm: AppViewModel, webView: WebView) {
                 tabs.forEachIndexed { i, t ->
                     NavigationBarItem(
                         selected = tab == i,
-                        onClick = { tab = i },
+                        onClick = {
+                            // Toucher à nouveau l'onglet X recharge l'accueil (utile si la page bloque).
+                            if (i == 0 && tab == 0) webView.loadUrl(MainActivity.HOME)
+                            tab = i
+                        },
                         icon = { Icon(t.icon, contentDescription = t.label) },
                         label = { Text(t.label) },
                     )
@@ -74,7 +81,13 @@ fun ArcApp(vm: AppViewModel, webView: WebView) {
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+        Box(
+            Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
+                .fillMaxSize()
+        ) {
             when (tab) {
                 0 -> WebTab(webView)
                 1 -> ComposeTab(vm) { tab = 3 }
