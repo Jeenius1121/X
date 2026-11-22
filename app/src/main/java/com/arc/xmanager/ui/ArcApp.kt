@@ -15,8 +15,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -93,13 +91,7 @@ fun ArcApp(vm: AppViewModel, webView: WebView) {
             }
         },
     ) { padding ->
-        Box(
-            Modifier
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .imePadding()
-                .fillMaxSize()
-        ) {
+        Box(Modifier.padding(padding).fillMaxSize()) {
             when (tab) {
                 0 -> WebTab(webView)
                 1 -> ComposeTab(vm) { tab = 3 }

@@ -13,7 +13,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.arc.xmanager.ui.AppViewModel
@@ -32,7 +31,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         webView = createWebView()
         if (savedInstanceState == null) handleIntent(intent)
         setContent { ArcTheme { ArcApp(vm, webView) } }
@@ -66,8 +64,6 @@ class MainActivity : ComponentActivity() {
         settings.domStorageEnabled = true
         settings.mediaPlaybackRequiresUserGesture = true
         settings.setSupportMultipleWindows(false)
-        settings.useWideViewPort = true
-        settings.loadWithOverviewMode = true
         // X fonctionne mal quand il détecte une WebView : on se présente comme Chrome mobile.
         settings.userAgentString = settings.userAgentString
             .replace("; wv", "")
