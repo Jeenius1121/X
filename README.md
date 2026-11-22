@@ -7,7 +7,7 @@ tout passe soit par le site officiel x.com, soit par l'API officielle de X (offr
 
 | Onglet | Rôle |
 |---|---|
-| **X** | x.com intégré : fil, notifications, lecture des réponses, actions manuelles. |
+| **X** | Ouvre x.com dans Chrome (onglet intégré) : fil, notifications, réponses, actions manuelles. |
 | **Écrire** | Publier un tweet ou une réponse (lien/ID), ou le programmer à une date et heure. |
 | **Gérer** | Rechercher dans tous ses tweets et réponses, puis **suppression en masse**. |
 | **Réglages** | Connexion OAuth à X, import de l'archive, informations sur les quotas. |
